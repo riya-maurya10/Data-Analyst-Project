@@ -113,7 +113,7 @@ To embed this dashboard in any website:
 
 ## 👤 Author
 
-**Manas Goel**  
+**Manas Goel  &  Riya Maurya**  
 Data Visualization Project — Tableau / Web Dashboard Integration
 
 ---
