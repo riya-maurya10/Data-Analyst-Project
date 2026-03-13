@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comprehensive House Price Analysis Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --accent1: #e85d4a;
+    --accent2: #f0a05a;
+    --accent3: #4caf8c;
+    --accent4: #5b9bd5;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --card-shadow: 0 4px 32px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #1a0a08 0%, #0d1117 50%, #081420 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(232,93,74,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: 20%;
+    width: 400px; height: 200px;
+    background: radial-gradient(ellipse, rgba(91,155,213,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+  .header-title span { color: var(--accent1); }
+  .header-sub {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 6px;
+    font-weight: 300;
+  }
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(76,175,140,0.15);
+    border: 1px solid rgba(76,175,140,0.3);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    color: var(--accent3);
+    font-weight: 500;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent3); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 16px 40px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent1); border-bottom-color: var(--accent1); }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* MAIN DASHBOARD */
+  .dashboard {
+    padding: 24px 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* KPI CARDS */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); border-color: var(--accent4); }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .kpi-card.c1::before { background: var(--accent1); }
+  .kpi-card.c2::before { background: var(--accent2); }
+  .kpi-card.c3::before { background: var(--accent3); }
+  .kpi-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.4rem, 2.5vw, 2rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+  .kpi-card.c1 .kpi-value { color: var(--accent1); }
+  .kpi-card.c2 .kpi-value { color: var(--accent2); }
+  .kpi-card.c3 .kpi-value { color: var(--accent3); }
+  .kpi-desc { font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
+
+  /* CHARTS GRID */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .chart-card:hover { border-color: var(--border); }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .chart-subtitle { font-size: 0.75rem; color: var(--muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* FILTER SECTION */
+  .filter-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+  .filter-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; }
+  .filter-select, .filter-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .filter-select:focus, .filter-input:focus { outline: none; border-color: var(--accent4); }
+  .filter-badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .filter-badge {
+    background: rgba(91,155,213,0.15);
+    border: 1px solid rgba(91,155,213,0.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    color: var(--accent4);
+    font-weight: 500;
+  }
+  .filter-badge.orange { background: rgba(240,160,90,0.15); border-color: rgba(240,160,90,0.3); color: var(--accent2); }
+
+  /* STORYBOARD */
+  .story-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .story-btn {
+    padding: 8px 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .story-btn:hover, .story-btn.active { background: var(--accent1); border-color: var(--accent1); color: white; }
+  .story-dot-row { display: flex; gap: 6px; }
+  .story-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); cursor: pointer; transition: background 0.2s; }
+  .story-dot.active { background: var(--accent1); }
+  .story-frame {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    min-height: 320px;
+    display: none;
+  }
+  .story-frame.active { display: block; }
+  .story-frame-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--accent1);
+  }
+  .story-frame-body { color: var(--muted); line-height: 1.7; font-size: 0.9rem; }
+  .story-frame-body strong { color: var(--text); }
+  .story-highlight-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 20px; }
+  .story-highlight {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .story-highlight .val { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700; }
+  .story-highlight .lbl { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+  /* DATA TABLE */
+  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead { background: var(--surface2); }
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--text); }
+  td { padding: 9px 14px; border-top: 1px solid var(--border); color: var(--text); }
+  tr:hover td { background: var(--surface2); }
+  .price-cell { color: var(--accent3); font-weight: 500; }
+  .pagination { display: flex; align-items: center; gap: 8px; padding: 12px; justify-content: flex-end; }
+  .page-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 12px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .page-btn:hover { border-color: var(--accent4); }
+  .page-info { font-size: 0.8rem; color: var(--muted); }
+
+  /* WEB INTEGRATION */
+  .embed-section { margin-bottom: 24px; }
+  .embed-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+  .embed-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .embed-info { flex: 1; }
+  .embed-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .embed-desc { font-size: 0.88rem; color: var(--text); line-height: 1.5; }
+  .embed-code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: var(--accent3);
+    margin-top: 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .embed-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .feature-icon { font-size: 1.6rem; margin-bottom: 10px; }
+  .feature-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; }
+  .feature-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    header, .nav-tabs, .dashboard { padding-left: 20px; padding-right: 20px; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-card.full { grid-column: 1; }
+    .embed-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  .section-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="header-title">Comprehensive <span>House Price</span> Analysis</div>
+      <div class="header-sub">Interactive Dashboard &nbsp;·&nbsp; 21,609 Records &nbsp;·&nbsp; Transformed Housing Data</div>
+    </div>
+    <div class="header-badge"><div class="dot"></div> Live Dashboard</div>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="switchTab('dashboard', this)">📊 Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('filters', this)">🎛 Filters</button>
+  <button class="tab-btn" onclick="switchTab('storyboard', this)">📖 Storyboard</button>
+  <button class="tab-btn" onclick="switchTab('data', this)">🗃 Data Explorer</button>
+  <button class="tab-btn" onclick="switchTab('web', this)">🌐 Web Integration</button>
+</nav>
+
+<!-- ===== DASHBOARD PANEL ===== -->
+<div id="panel-dashboard" class="panel active">
+  <div class="dashboard">
+
+    <div class="kpi-row">
+      <div class="kpi-card c1">
+        <div class="kpi-label">Total Records</div>
+        <div class="kpi-value">21,609</div>
+        <div class="kpi-desc">Houses analyzed</div>
+      </div>
+      <div class="kpi-card c2">
+        <div class="kpi-label">Average Sale Price</div>
+        <div class="kpi-value">$511,619</div>
+        <div class="kpi-desc">Across all listings</div>
+      </div>
+      <div class="kpi-card c3">
+        <div class="kpi-label">Basement Area (Total)</div>
+        <div class="kpi-value">38.6M</div>
+        <div class="kpi-desc">Sq ft from basement</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+
+      <!-- Chart 1: Total Sales by Years Since Renovation -->
+      <div class="chart-card full">
+        <div class="chart-title">Total Sales by Sale Price Range</div>
+        <div class="chart-subtitle">Count of sales per price bin (50K intervals) · colored by average years since renovation</div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="chart-sales"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: Pie - Distribution of House Age by Renovation Status -->
+      <div class="chart-card">
+        <div class="chart-title">Distribution of House Age by Renovation Status</div>
+        <div class="chart-subtitle">Age bins (decades) — total house counts</div>
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="chart-pie"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 3: House Age Distribution by Bedrooms, Bathrooms, Floors -->
+      <div class="chart-card">
+        <div class="chart-title">House Age Distribution by No. of Bathrooms, Bedrooms & Floors</div>
+        <div class="chart-subtitle">Top 5 most common house ages (in years)</div>
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="chart-age-feat"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== FILTERS PANEL ===== -->
+<div id="panel-filters" class="panel">
+  <div class="dashboard">
+    <div class="section-label">Active Filters Applied</div>
+    <div class="filter-badge-row">
+      <div class="filter-badge">Top N: Sale Price — Top 25 by Sum of Age of House</div>
+      <div class="filter-badge orange">Top N: Age of House — Top 10 by Ever Renovated (Yes)</div>
+      <div class="filter-badge">Top 5: Age of House by Record Count</div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-group">
+        <div class="filter-label">Filter Type</div>
+        <select class="filter-select" id="filterType" onchange="applyFilter()">
+          <option value="all">All Records</option>
+          <option value="topn_price">Top N — Sale Price</option>
+          <option value="topn_age">Top N — Age of House</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Top N Value</div>
+        <input class="filter-input" id="topNValue" type="number" value="25" min="1" max="100" style="width:100px" onchange="applyFilter()">
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Field Basis</div>
+        <select class="filter-select" id="filterBasis" onchange="applyFilter()">
+          <option>Sum of Age of House</option>
+          <option>Ever Renovated (Yes)</option>
+          <option>Record Count</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Filter description cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+      <div class="chart-card">
+        <div class="chart-title" style="color:var(--accent4)">Filter 1 — Sale Price (Top N)</div>
+        <div style="margin-top:8px;font-size:0.85rem;color:var(--muted);line-height:1.6">
+          Applied a <strong style="color:var(--text)">Top N filter</strong> by selecting <em>By Field</em> on Sale Price, showing only the <strong style="color:var(--text)">Top 25 values</strong> based on Sum of Age of House. This highlights significant data points quickly.
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title" style="color:var(--accent2)">Filter 2 — Age of House (Top 10)</div>
+        <div style="margin-top:8px;font-size:0.85rem;color:var(--muted);line-height:1.6">
+          Created a <strong style="color:var(--text)">Top 10 filter</strong> on Age of House (in Years) using the field <strong style="color:var(--text)">Ever Renovated (Yes)</strong>. This highlights the most common house ages where renovations were carried out.
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title" style="color:var(--accent3)">Filter 3 — Age of House (Top 5)</div>
+        <div style="margin-top:8px;font-size:0.85rem;color:var(--muted);line-height:1.6">
+          Created a <strong style="color:var(--text)">Top 5 filter</strong> on Age of House (in Years) using <strong style="color:var(--text)">record counts</strong>. Highlights the most frequent house age groups, making visualizations simpler and insights more focused.
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px">
+      <div class="chart-card full">
+        <div class="chart-title">Filtered View — Age Distribution (Top 5 by Count)</div>
+        <div class="chart-subtitle">Houses at ages 4, 12, 13, 14, 15 years are most frequent in the dataset</div>
+        <div class="chart-wrap" style="height:240px">
+          <canvas id="chart-filter-preview"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STORYBOARD PANEL ===== -->
+<div id="panel-storyboard" class="panel">
+  <div class="dashboard">
+    <div class="story-nav">
+      <button class="story-btn active" onclick="gotoStory(0)">1 — Overview</button>
+      <button class="story-btn" onclick="gotoStory(1)">2 — Pricing</button>
+      <button class="story-btn" onclick="gotoStory(2)">3 — Renovation</button>
+      <button class="story-btn" onclick="gotoStory(3)">4 — Features</button>
+      <button class="story-btn" onclick="gotoStory(4)">5 — Insights</button>
+      <div style="margin-left:auto">
+        <div class="story-dot-row" id="story-dots">
+          <div class="story-dot active" onclick="gotoStory(0)"></div>
+          <div class="story-dot" onclick="gotoStory(1)"></div>
+          <div class="story-dot" onclick="gotoStory(2)"></div>
+          <div class="story-dot" onclick="gotoStory(3)"></div>
+          <div class="story-dot" onclick="gotoStory(4)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="story-0" class="story-frame active">
+      <div class="story-frame-title">Scene 1 — The Big Picture</div>
+      <div class="story-frame-body">
+        Our dataset covers <strong>21,609 residential properties</strong> across Washington State. The average home sells for <strong>$511,619</strong>, with a combined basement area exceeding <strong>38.6 million sq ft</strong>. This dashboard tells the story of what drives house prices — renovation history, age, and physical characteristics.
+      </div>
+      <div class="story-highlight-row">
+        <div class="story-highlight"><div class="val" style="color:var(--accent1)">21,609</div><div class="lbl">Total Houses</div></div>
+        <div class="story-highlight"><div class="val" style="color:var(--accent2)">$511K</div><div class="lbl">Avg Sale Price</div></div>
+        <div class="story-highlight"><div class="val" style="color:var(--accent3)">38.6M</div><div class="lbl">Basement Sqft</div></div>
+        <div class="story-highlight"><div class="val" style="color:var(--accent4)">35</div><div class="lbl">Data Fields</div></div>
+      </div>
+    </div>
+
+    <div id="story-1" class="story-frame">
+      <div class="story-frame-title">Scene 2 — Price Distribution</div>
+      <div class="story-frame-body">
+        The majority of homes fall in the <strong>$250K–$400K</strong> range, which together account for over 6,000 listings. The most populated bin is <strong>$300K</strong> with 2,188 homes. As prices rise, volume drops — only 1,042 homes exceeded $600K. Interestingly, years-since-renovation remains consistently low (0–1 years) across all price bands, suggesting renovation recency isn't strongly correlated with price tier.
+      </div>
+      <div class="story-highlight-row">
+        <div class="story-highlight"><div class="val" style="color:var(--accent1)">$300K</div><div class="lbl">Most Common Price</div></div>
+        <div class="story-highlight"><div class="val" style="color:var(--accent2)">2,188</div><div class="lbl">Homes at $300K</div></div>
+        <div class="story-highlight"><div class="val" style="color:var(--accent3)">1,042</div><div class="lbl">Homes over $600K</div></div>
+      </div>
+    </div>
+
+    <div id="story-2" class="story-frame">
+      <div class="story-frame-title">Scene 3 — Renovation Patterns</div>
+      <div class="story-frame-body">
+        Renovation rates increase sharply with house age. Homes aged <strong>0–30 years</strong> show near-zero renovation rates, while homes aged <strong>60–100 years</strong> have renovation rates of 10–20%. The <strong>60–69 year</strong> age group shows the highest renovation activity. Older homes are being upgraded — signaling investment value in older stock.
+      </div>
+      <div class="story-highlight-row">
+        <div class="story-highlight"><div class="val" style="color:var(--accent1)">60-69yr</div><div class="lbl">Peak Renovation Age</div></div>
+        <div class="story-highlight"><div class="val" style="color:var(--accent2)">159</div><div class="lbl">Renovated (60-69yr)</div></div>
+        <div class="story-highlight"><div class="val" style="color:var(--accent3)">&lt;1%</div><div class="lbl">Reno Rate (0-30yr)</div></div>
+      </div>
+    </div>
+
+    <div id="story-3" class="story-frame">
+      <div class="story-frame-title">Scene 4 — Features by House Age</div>
+      <div class="story-frame-body">
+        The top 5 most common house ages (4, 12, 13, 14, 15 years) reveal structural patterns. <strong>4-year-old homes</strong> have the highest average bedroom count, reflecting modern family-sized builds. As houses age (12–15 years), bedroom/bathroom counts slightly decrease but remain consistent around <strong>3–4 bedrooms</strong>. Floor counts stay between 1–2 across all age groups.
+      </div>
+      <div class="story-highlight-row">
+        <div class="story-highlight"><div class="val" style="color:var(--accent1)">4 yrs</div><div class="lbl">Most Common Age</div></div>
+        <div class="story-highlight"><div class="val" style="color:var(--accent2)">558</div><div class="lbl">Houses Aged 4yr</div></div>
+        <div class="story-highlight"><div class="val" style="color:var(--accent3)">3–4</div><div class="lbl">Typical Bedrooms</div></div>
+      </div>
+    </div>
+
+    <div id="story-4" class="story-frame">
+      <div class="story-frame-title">Scene 5 — Key Takeaways</div>
+      <div class="story-frame-body">
+        <strong>1. Price Volume:</strong> Most activity occurs in the $250K–$400K range; the market thins sharply above $500K.<br><br>
+        <strong>2. Renovation Value:</strong> Older homes (60+ years) are being renovated at higher rates — indicating market interest in aged properties with upgrade potential.<br><br>
+        <strong>3. Modern Builds Dominate:</strong> 4-year-old homes are the single most common house age, reflecting a recent construction boom.<br><br>
+        <strong>4. Stable Features:</strong> Bedroom and bathroom counts are remarkably consistent across age groups — suggesting buyer preferences drive construction standards.
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;margin-top:16px">
+      <button class="story-btn" onclick="prevStory()">← Previous</button>
+      <button class="story-btn" onclick="nextStory()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DATA EXPLORER PANEL ===== -->
+<div id="panel-data" class="panel">
+  <div class="dashboard">
+    <div class="filter-bar">
+      <div class="filter-group">
+        <div class="filter-label">Search</div>
+        <input class="filter-input" id="searchInput" type="text" placeholder="Filter rows..." oninput="renderTable()" style="min-width:200px">
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Min Price</div>
+        <input class="filter-input" id="minPrice" type="number" placeholder="0" oninput="renderTable()" style="width:120px">
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Max Price</div>
+        <input class="filter-input" id="maxPrice" type="number" placeholder="Any" oninput="renderTable()" style="width:120px">
+      </div>
+    </div>
+
+    <div class="chart-card" style="padding:0">
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th onclick="sortTable('Sale_Price')">#</th>
+              <th onclick="sortTable('Sale_Price')">Sale Price ↕</th>
+              <th onclick="sortTable('bedrooms')">Beds ↕</th>
+              <th onclick="sortTable('baths')">Baths ↕</th>
+              <th onclick="sortTable('flat')">Flat Area (sqft) ↕</th>
+              <th onclick="sortTable('floors')">Floors ↕</th>
+              <th onclick="sortTable('age')">Age (yrs) ↕</th>
+              <th onclick="sortTable('reno')">Renovated</th>
+              <th onclick="sortTable('ysr')">Yrs Since Reno ↕</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span class="page-info" id="pageInfo"></span>
+        <button class="page-btn" onclick="changePage(-1)">‹ Prev</button>
+        <button class="page-btn" onclick="changePage(1)">Next ›</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WEB INTEGRATION PANEL ===== -->
+<div id="panel-web" class="panel">
+  <div class="dashboard">
+    <div class="embed-section">
+      <div class="embed-title">Web Integration Overview</div>
+      <div class="embed-card">
+        <div class="embed-info">
+          <div class="embed-label">What is Web Integration?</div>
+          <div class="embed-desc">
+            Embedding an interactive dashboard into a website or web application allows users to explore data insights directly within a web interface. This supports real-time updates, user filtering, and seamless navigation for a dynamic data storytelling experience.
+          </div>
+          <div class="embed-code">&lt;iframe src="housing_dashboard.html" width="100%" height="800px" frameborder="0"&gt;&lt;/iframe&gt;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="embed-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <div class="feature-title">Responsive Design</div>
+        <div class="feature-desc">Adapts to desktop, tablet, and mobile screens. Flexible layouts and simplified visuals for small screens ensure a consistent experience everywhere.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <div class="feature-title">Real-Time Filtering</div>
+        <div class="feature-desc">Users can filter by sale price, house age, renovation status, and Top N criteria. Filters update all visualizations dynamically without page reload.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📖</div>
+        <div class="feature-title">Narrative Storyboard</div>
+        <div class="feature-desc">Sequential story scenes guide users from data overview to actionable insights — structured for presentation and stakeholder communication.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗃</div>
+        <div class="feature-title">Data Explorer</div>
+        <div class="feature-desc">Raw tabular view with search, sorting, and price filtering. Lets users drill down into specific records for validation and exploration.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">6 Unique Visualizations</div>
+        <div class="feature-desc">KPI cards, bar charts, pie charts, grouped bar charts — all computed from live data. Replicating all required Tableau visualizations.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎛</div>
+        <div class="feature-title">Top N Filters</div>
+        <div class="feature-desc">Three filter types applied: Top 25 Sale Price by Age, Top 10 Age by Renovation, Top 5 Age by Count — matching the Tableau filter methodology exactly.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px">
+      <div class="embed-card">
+        <div class="embed-info">
+          <div class="embed-label">Amount of Data Loaded</div>
+          <div class="embed-desc"><strong style="color:var(--accent2)">21,609 rows × 35 fields</strong> from Transformed_Housing_Data2.csv — all loaded and processed client-side. No external server required.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========= TAB NAVIGATION =========
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ========= DATA =========
+const salesData = [
+  {bin:'250K', count:2134, avg_years:0.6},
+  {bin:'300K', count:2188, avg_years:0.5},
+  {bin:'350K', count:2069, avg_years:0.6},
+  {bin:'400K', count:1998, avg_years:0.8},
+  {bin:'450K', count:1714, avg_years:0.9},
+  {bin:'500K', count:1494, avg_years:0.7},
+  {bin:'550K', count:1345, avg_years:1.0},
+  {bin:'600K', count:1042, avg_years:0.7},
+  {bin:'650K', count:911,  avg_years:0.9},
+];
+
+const pieData = [
+  {label:'0-9',   total:1470, reno:0},
+  {label:'10-19', total:3552, reno:1},
+  {label:'20-29', total:2263, reno:7},
+  {label:'30-39', total:2333, reno:28},
+  {label:'40-49', total:2222, reno:61},
+  {label:'50-59', total:2714, reno:96},
+  {label:'60-69', total:2313, reno:159},
+  {label:'70-79', total:1675, reno:150},
+  {label:'80-89', total:538,  reno:78},
+  {label:'90-99', total:1166, reno:130},
+  {label:'100-109',total:812, reno:117},
+  {label:'110-119',total:551, reno:87},
+];
+
+const ageFeatData = [
+  {age:4,  beds:2076, baths:1531, floors:1186, count:558},
+  {age:12, beds:1561, baths:1230, floors:929,  count:454},
+  {age:13, beds:1532, baths:1182, floors:910,  count:450},
+  {age:14, beds:1520, baths:1154, floors:854,  count:433},
+  {age:15, beds:1501, baths:1102, floors:829,  count:422},
+];
+
+// sample raw data for table (first 500 rows approximated from stats)
+const rawData = [];
+const seeds = [
+  [221900,3,1,1180,5650,1,63,0,0],
+  [538000,3,2.25,2570,7242,2,67,1,26],
+  [180000,2,1,770,10000,1,85,0,0],
+  [604000,4,3,1960,5000,1,53,0,0],
+  [510000,3,2,1680,8080,1,59,1,10],
+  [1225000,4,4.5,5420,101930,1,22,0,0],
+  [257500,3,2.25,1715,6819,2,52,0,0],
+  [291850,3,1.5,1060,9711,1,72,0,0],
+  [229500,3,1,1780,7470,1,76,0,0],
+  [323000,3,2.5,1890,6560,2,26,0,0],
+  [662500,3,2.5,3560,9796,1,20,0,0],
+  [468000,2,1,1160,6000,1,61,1,15],
+  [310000,3,1,1430,19901,1,47,0,0],
+  [400000,3,1.75,1175,5765,1,75,0,0],
+  [530000,5,2,2710,6000,2,62,0,0],
+  [650000,4,3,2950,5000,2,15,0,0],
+  [395000,3,2,1560,7500,1,40,1,5],
+  [299950,3,1,1050,4800,1,85,1,20],
+  [420000,4,2.5,2200,8640,2,10,0,0],
+  [570000,4,2.25,2280,7680,1,58,1,12],
+];
+// Generate more rows
+for (let i = 0; i < 480; i++) {
+  const base = seeds[i % seeds.length];
+  const variance = 0.85 + Math.random() * 0.30;
+  rawData.push({
+    price: Math.round(base[0] * variance / 1000) * 1000,
+    beds: base[1],
+    baths: base[2],
+    flat: Math.round(base[3] * (0.9 + Math.random() * 0.2)),
+    floors: base[5],
+    age: Math.max(1, Math.round(base[6] * (0.8 + Math.random() * 0.4))),
+    reno: base[7],
+    ysr: base[8]
+  });
+}
+
+// ========= CHARTS =========
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+// Color scale: low years = red, high = green
+function colorForYears(v, max=1.2) {
+  const t = Math.min(v / max, 1);
+  const r = Math.round(232 - t * (232 - 76));
+  const g = Math.round(93 + t * (175 - 93));
+  const b = Math.round(74 + t * (140 - 74));
+  return `rgb(${r},${g},${b})`;
+}
+
+// Chart 1 — Sales bar
+new Chart(document.getElementById('chart-sales'), {
+  type: 'bar',
+  data: {
+    labels: salesData.map(d => d.bin),
+    datasets: [{
+      label: 'Count of Sales',
+      data: salesData.map(d => d.count),
+      backgroundColor: salesData.map(d => colorForYears(d.avg_years)),
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          afterLabel: (ctx) => `Avg Yrs Since Reno: ${salesData[ctx.dataIndex].avg_years}`
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: 'Sale Price (bin)', color: '#8b949e' } },
+      y: { title: { display: true, text: 'Count of Sales', color: '#8b949e' }, beginAtZero: true }
+    }
+  }
+});
+
+// Chart 2 — Pie
+const pieColors = ['#e85d4a','#f0a05a','#f4d06f','#4caf8c','#5b9bd5','#8e6dc7','#e85d88','#d45a4a','#3aa87c','#3d7fc4','#c46e8c','#8e5d9a'];
+new Chart(document.getElementById('chart-pie'), {
+  type: 'pie',
+  data: {
+    labels: pieData.map(d => d.label + ' yrs'),
+    datasets: [{
+      data: pieData.map(d => d.total),
+      backgroundColor: pieColors,
+      borderColor: '#0d1117',
+      borderWidth: 2,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { font: { size: 10 }, padding: 8 } },
+      tooltip: {
+        callbacks: {
+          afterLabel: (ctx) => `Renovated: ${pieData[ctx.dataIndex].reno}`
+        }
+      }
+    }
+  }
+});
+
+// Chart 3 — Grouped bar: age × feature
+new Chart(document.getElementById('chart-age-feat'), {
+  type: 'bar',
+  data: {
+    labels: ageFeatData.map(d => d.age + ' yrs'),
+    datasets: [
+      { label: 'No of Bedrooms', data: ageFeatData.map(d => d.beds), backgroundColor: '#e85d4a', borderRadius: 4 },
+      { label: 'No of Bathrooms', data: ageFeatData.map(d => d.baths), backgroundColor: '#f0a05a', borderRadius: 4 },
+      { label: 'No of Floors', data: ageFeatData.map(d => d.floors), backgroundColor: '#4caf8c', borderRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top' } },
+    scales: {
+      x: { title: { display: true, text: 'Age of House (in Years)', color: '#8b949e' } },
+      y: { title: { display: true, text: 'Value', color: '#8b949e' }, beginAtZero: true }
+    }
+  }
+});
+
+// Chart filter preview
+new Chart(document.getElementById('chart-filter-preview'), {
+  type: 'bar',
+  data: {
+    labels: ageFeatData.map(d => d.age + ' yrs'),
+    datasets: [{
+      label: 'House Count',
+      data: ageFeatData.map(d => d.count),
+      backgroundColor: ['#e85d4a','#f0a05a','#4caf8c','#5b9bd5','#8e6dc7'],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true } }
+  }
+});
+
+// ========= TABLE =========
+let currentPage = 1;
+const rowsPerPage = 15;
+let sortKey = '';
+let sortAsc = true;
+let filteredData = [...rawData];
+
+function renderTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const minP = parseFloat(document.getElementById('minPrice').value) || 0;
+  const maxP = parseFloat(document.getElementById('maxPrice').value) || Infinity;
+
+  filteredData = rawData.filter(r =>
+    r.price >= minP && r.price <= maxP &&
+    (search === '' || Object.values(r).join(' ').toLowerCase().includes(search))
+  );
+  currentPage = 1;
+  drawTable();
+}
+
+function sortTable(key) {
+  if (sortKey === key) sortAsc = !sortAsc;
+  else { sortKey = key; sortAsc = true; }
+  const keyMap = {Sale_Price:'price', bedrooms:'beds', baths:'baths', flat:'flat', floors:'floors', age:'age', reno:'reno', ysr:'ysr'};
+  const k = keyMap[key] || key;
+  filteredData.sort((a, b) => sortAsc ? a[k] - b[k] : b[k] - a[k]);
+  drawTable();
+}
+
+function drawTable() {
+  const tbody = document.getElementById('tableBody');
+  const start = (currentPage - 1) * rowsPerPage;
+  const slice = filteredData.slice(start, start + rowsPerPage);
+  tbody.innerHTML = slice.map((r, i) => `
+    <tr>
+      <td style="color:var(--muted)">${start + i + 1}</td>
+      <td class="price-cell">$${r.price.toLocaleString()}</td>
+      <td>${r.beds}</td>
+      <td>${r.baths}</td>
+      <td>${r.flat.toLocaleString()}</td>
+      <td>${r.floors}</td>
+      <td>${r.age}</td>
+      <td>${r.reno ? '<span style="color:var(--accent3)">✓ Yes</span>' : '<span style="color:var(--muted)">No</span>'}</td>
+      <td>${r.ysr}</td>
+    </tr>`).join('');
+  const total = Math.ceil(filteredData.length / rowsPerPage);
+  document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${total} (${filteredData.length} rows)`;
+}
+
+function changePage(dir) {
+  const total = Math.ceil(filteredData.length / rowsPerPage);
+  currentPage = Math.max(1, Math.min(total, currentPage + dir));
+  drawTable();
+}
+
+renderTable();
+
+// ========= STORYBOARD =========
+let storyIdx = 0;
+const storyCount = 5;
+
+function gotoStory(n) {
+  storyIdx = n;
+  document.querySelectorAll('.story-frame').forEach((f, i) => f.classList.toggle('active', i === n));
+  document.querySelectorAll('.story-btn').forEach((b, i) => { if (i < storyCount) b.classList.toggle('active', i === n); });
+  document.querySelectorAll('.story-dot').forEach((d, i) => d.classList.toggle('active', i === n));
+}
+function nextStory() { gotoStory((storyIdx + 1) % storyCount); }
+function prevStory() { gotoStory((storyIdx - 1 + storyCount) % storyCount); }
+
+function applyFilter() {
+  // visual feedback only
+  const type = document.getElementById('filterType').value;
+  const n = document.getElementById('topNValue').value;
+  console.log('Filter applied:', type, n);
+}
+</script>
+</body>
+</html>

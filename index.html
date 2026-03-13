@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Housing Trends — Visualizing Housing Sales</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --orange: #e8572a;
+  --dark: #0e1118;
+  --dark2: #161c26;
+  --dark3: #1e2535;
+  --border: #2a3246;
+  --text: #f0f4ff;
+  --muted: #8895b3;
+  --accent: #e8572a;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+/* ===== NAVBAR ===== */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 60px;
+  background: rgba(14,17,24,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.3s;
+}
+.nav-logo {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+.nav-links {
+  display: flex;
+  gap: 36px;
+  list-style: none;
+}
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.2s;
+  position: relative;
+  padding-bottom: 4px;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 0; height: 2px;
+  background: var(--orange);
+  transition: width 0.3s;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--text); }
+.nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+
+/* ===== HERO ===== */
+#home {
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=80');
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.3);
+}
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(14,17,24,0.85) 0%, rgba(14,17,24,0.5) 50%, rgba(232,87,42,0.1) 100%);
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 60px;
+  max-width: 900px;
+  animation: fadeUp 1s ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-tag {
+  display: inline-block;
+  background: rgba(232,87,42,0.15);
+  border: 1px solid rgba(232,87,42,0.4);
+  color: var(--orange);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.hero-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  line-height: 0.95;
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+  color: #fff;
+}
+.hero-title span { color: var(--orange); }
+.hero-desc {
+  font-size: 1.05rem;
+  color: rgba(240,244,255,0.7);
+  max-width: 520px;
+  line-height: 1.7;
+  margin-bottom: 36px;
+  font-weight: 300;
+}
+.btn-primary {
+  display: inline-block;
+  background: var(--orange);
+  color: white;
+  padding: 14px 32px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:hover { background: #d44820; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(232,87,42,0.4); }
+.btn-outline {
+  display: inline-block;
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 14px 32px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.88rem;
+  text-decoration: none;
+  margin-left: 12px;
+  transition: all 0.2s;
+}
+.btn-outline:hover { border-color: white; }
+
+.hero-stats {
+  position: absolute;
+  bottom: 50px; right: 60px;
+  display: flex;
+  gap: 40px;
+  z-index: 2;
+  animation: fadeUp 1s 0.3s ease both;
+}
+.hero-stat { text-align: right; }
+.hero-stat-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.2rem;
+  color: var(--orange);
+  line-height: 1;
+}
+.hero-stat-lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; }
+
+/* ===== SECTION COMMON ===== */
+section { padding: 90px 60px; }
+.section-tag {
+  font-size: 0.72rem;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1;
+  margin-bottom: 16px;
+  letter-spacing: 0.5px;
+}
+.section-desc {
+  color: var(--muted);
+  max-width: 580px;
+  line-height: 1.7;
+  font-size: 0.95rem;
+  font-weight: 300;
+}
+
+/* ===== ABOUT ===== */
+#about {
+  background: var(--dark2);
+  border-top: 1px solid var(--border);
+}
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  margin-top: 48px;
+}
+.about-features { display: flex; flex-direction: column; gap: 20px; }
+.about-feature {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px;
+  background: var(--dark3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.2s;
+}
+.about-feature:hover { border-color: var(--orange); }
+.about-icon {
+  width: 40px; height: 40px;
+  background: rgba(232,87,42,0.15);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.about-feature-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+.about-feature-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+.about-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.about-stat-card {
+  background: var(--dark3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+}
+.about-stat-card .val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.4rem;
+  color: var(--orange);
+  line-height: 1;
+}
+.about-stat-card .lbl { font-size: 0.75rem; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ===== DASHBOARD ===== */
+#dashboard {
+  background: var(--dark);
+  border-top: 1px solid var(--border);
+}
+.dashboard-header { margin-bottom: 32px; }
+.dashboard-embed {
+  background: var(--dark2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.dash-tabs {
+  display: flex;
+  background: var(--dark3);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  overflow-x: auto;
+}
+.dash-tab {
+  padding: 14px 20px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.dash-tab:hover { color: var(--text); }
+.dash-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+/* KPI Cards */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 24px;
+}
+.kpi {
+  background: var(--dark3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  border-top: 3px solid;
+  transition: transform 0.2s;
+}
+.kpi:hover { transform: translateY(-2px); }
+.kpi:nth-child(1) { border-top-color: var(--orange); }
+.kpi:nth-child(2) { border-top-color: #f0a05a; }
+.kpi:nth-child(3) { border-top-color: #4caf8c; }
+.kpi-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.kpi-val { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; line-height: 1; }
+.kpi:nth-child(1) .kpi-val { color: var(--orange); }
+.kpi:nth-child(2) .kpi-val { color: #f0a05a; }
+.kpi:nth-child(3) .kpi-val { color: #4caf8c; }
+.kpi-sub { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+/* Charts */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 0 24px 24px;
+}
+.chart-box {
+  background: var(--dark3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+}
+.chart-box.wide { grid-column: 1 / -1; }
+.chart-box-title { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.5px; margin-bottom: 4px; }
+.chart-box-sub { font-size: 0.72rem; color: var(--muted); margin-bottom: 14px; }
+.chart-wrap { position: relative; }
+
+/* Dashboard panels */
+.dash-panel { display: none; }
+.dash-panel.active { display: block; }
+
+/* ===== STORY ===== */
+#story {
+  background: var(--dark2);
+  border-top: 1px solid var(--border);
+}
+.story-grid { display: grid; grid-template-columns: 280px 1fr; gap: 32px; margin-top: 40px; }
+.story-sidebar { display: flex; flex-direction: column; gap: 8px; }
+.story-item {
+  padding: 16px 18px;
+  background: var(--dark3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.story-item:hover { border-color: var(--orange); }
+.story-item.active { border-color: var(--orange); background: rgba(232,87,42,0.08); }
+.story-num {
+  width: 28px; height: 28px;
+  background: var(--border);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.story-item.active .story-num { background: var(--orange); color: white; }
+.story-item-title { font-size: 0.85rem; font-weight: 500; }
+.story-content {
+  background: var(--dark3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 32px;
+  min-height: 400px;
+}
+.story-frame { display: none; }
+.story-frame.active { display: block; }
+.story-frame-tag { font-size: 0.7rem; color: var(--orange); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+.story-frame-title { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; margin-bottom: 16px; letter-spacing: 0.5px; }
+.story-frame-body { color: var(--muted); line-height: 1.8; font-size: 0.92rem; }
+.story-frame-body strong { color: var(--text); }
+.story-highlights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; }
+.s-hl { background: var(--dark2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center; }
+.s-hl .v { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: var(--orange); }
+.s-hl .l { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+
+/* ===== FOOTER ===== */
+footer {
+  background: var(--dark3);
+  border-top: 1px solid var(--border);
+  padding: 32px 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.footer-logo { font-weight: 600; font-size: 1rem; }
+.footer-copy { font-size: 0.8rem; color: var(--muted); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  nav, section, footer { padding-left: 24px; padding-right: 24px; }
+  .hero-content { padding: 0 24px; }
+  .hero-stats { right: 24px; gap: 20px; }
+  .about-grid, .story-grid { grid-template-columns: 1fr; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-box.wide { grid-column: 1; }
+  .kpi-row { grid-template-columns: 1fr; }
+  .story-highlights { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <div class="nav-logo">Housing Trends</div>
+  <ul class="nav-links">
+    <li><a href="#home" class="active" onclick="setActive(this)">Home</a></li>
+    <li><a href="#about" onclick="setActive(this)">About</a></li>
+    <li><a href="#dashboard" onclick="setActive(this)">Dashboard</a></li>
+    <li><a href="#story" onclick="setActive(this)">Story</a></li>
+  </ul>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section id="home" style="padding:0">
+  <div class="hero-bg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-tag">📊 Data Visualization Project</div>
+    <h1 class="hero-title">Visualizing Housing<br>Sales <span>Trends</span><br>And Its Prices.</h1>
+    <p class="hero-desc">An interactive analysis of 21,609 residential properties — exploring price distributions, renovation patterns, and house features through data-driven storytelling.</p>
+    <a href="#dashboard" class="btn-primary">Get Started</a>
+    <a href="#story" class="btn-outline">View Story</a>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-val">21,609</div>
+      <div class="hero-stat-lbl">Properties</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-val">$511K</div>
+      <div class="hero-stat-lbl">Avg Price</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-val">35</div>
+      <div class="hero-stat-lbl">Data Fields</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ABOUT ===== -->
+<section id="about">
+  <div class="section-tag">About This Project</div>
+  <h2 class="section-title">Understanding the<br>Housing Market</h2>
+  <p class="section-desc">This dashboard analyzes transformed housing data to uncover trends in pricing, renovation impact, and property features across Washington State.</p>
+
+  <div class="about-grid">
+    <div class="about-features">
+      <div class="about-feature">
+        <div class="about-icon">📊</div>
+        <div>
+          <div class="about-feature-title">6 Unique Visualizations</div>
+          <div class="about-feature-desc">KPI cards, bar charts, pie charts, and grouped charts — all built from real CSV data.</div>
+        </div>
+      </div>
+      <div class="about-feature">
+        <div class="about-icon">🎛</div>
+        <div>
+          <div class="about-feature-title">Top N Filters Applied</div>
+          <div class="about-feature-desc">Three filter strategies: Top 25 by Sale Price, Top 10 by Age & Renovation, Top 5 by Count.</div>
+        </div>
+      </div>
+      <div class="about-feature">
+        <div class="about-icon">📖</div>
+        <div>
+          <div class="about-feature-title">Interactive Storyboard</div>
+          <div class="about-feature-desc">5 narrative scenes guide users from data overview to actionable insights.</div>
+        </div>
+      </div>
+      <div class="about-feature">
+        <div class="about-icon">📱</div>
+        <div>
+          <div class="about-feature-title">Responsive Design</div>
+          <div class="about-feature-desc">Works on desktop, tablet, and mobile — flexible layouts for every screen size.</div>
+        </div>
+      </div>
+    </div>
+    <div class="about-stats-grid">
+      <div class="about-stat-card"><div class="val">21,609</div><div class="lbl">Total Records</div></div>
+      <div class="about-stat-card"><div class="val">$511K</div><div class="lbl">Avg Sale Price</div></div>
+      <div class="about-stat-card"><div class="val">38.6M</div><div class="lbl">Basement Sqft</div></div>
+      <div class="about-stat-card"><div class="val">35</div><div class="lbl">Data Fields</div></div>
+      <div class="about-stat-card"><div class="val">6</div><div class="lbl">Visualizations</div></div>
+      <div class="about-stat-card"><div class="val">5</div><div class="lbl">Story Scenes</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DASHBOARD ===== -->
+<section id="dashboard">
+  <div class="dashboard-header">
+    <div class="section-tag">Interactive Dashboard</div>
+    <h2 class="section-title">Comprehensive House<br>Price Analysis</h2>
+    <p class="section-desc">Explore all six visualizations — KPIs, sales trends, renovation distributions, and feature breakdowns. Full dashboard embedded below.</p>
+  </div>
+
+  <!-- EMBEDDED FULL DASHBOARD via iframe -->
+  <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 8px 40px rgba(0,0,0,0.4);">
+    <div style="background:var(--dark3);padding:12px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
+      <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57"></div>
+      <div style="width:12px;height:12px;border-radius:50%;background:#febc2e"></div>
+      <div style="width:12px;height:12px;border-radius:50%;background:#28c840"></div>
+      <div style="margin-left:12px;background:var(--dark2);border:1px solid var(--border);border-radius:6px;padding:4px 16px;font-size:0.75rem;color:var(--muted);flex:1;max-width:400px;">
+        🔒 housing_dashboard — Comprehensive House Price Analysis
+      </div>
+    </div>
+    <iframe
+      src="housing_dashboard.html"
+      width="100%"
+      height="850px"
+      frameborder="0"
+      scrolling="yes"
+      style="display:block;background:#0d1117;"
+      title="Comprehensive House Price Analysis Dashboard">
+    </iframe>
+  </div>
+</section>
+
+<!-- ===== STORY ===== -->
+<section id="story">
+  <div class="section-tag">Storyboard</div>
+  <h2 class="section-title">The Housing Data<br>Story</h2>
+  <p class="section-desc">A guided narrative through the key insights discovered in this dataset — from overview to actionable conclusions.</p>
+
+  <div class="story-grid">
+    <div class="story-sidebar">
+      <div class="story-item active" onclick="gotoStory(0, this)">
+        <div class="story-num">1</div>
+        <div class="story-item-title">The Big Picture</div>
+      </div>
+      <div class="story-item" onclick="gotoStory(1, this)">
+        <div class="story-num">2</div>
+        <div class="story-item-title">Price Distribution</div>
+      </div>
+      <div class="story-item" onclick="gotoStory(2, this)">
+        <div class="story-num">3</div>
+        <div class="story-item-title">Renovation Patterns</div>
+      </div>
+      <div class="story-item" onclick="gotoStory(3, this)">
+        <div class="story-num">4</div>
+        <div class="story-item-title">House Features</div>
+      </div>
+      <div class="story-item" onclick="gotoStory(4, this)">
+        <div class="story-num">5</div>
+        <div class="story-item-title">Key Insights</div>
+      </div>
+    </div>
+
+    <div class="story-content">
+      <div id="sf-0" class="story-frame active">
+        <div class="story-frame-tag">Scene 01 — Overview</div>
+        <div class="story-frame-title">The Big Picture</div>
+        <div class="story-frame-body">Our dataset covers <strong>21,609 residential properties</strong> across Washington State. The average home sells for <strong>$511,619</strong>, with a combined basement area exceeding <strong>38.6 million sq ft</strong>. This dashboard tells the story of what drives house prices — renovation history, age, and physical characteristics.</div>
+        <div class="story-highlights">
+          <div class="s-hl"><div class="v">21,609</div><div class="l">Total Houses</div></div>
+          <div class="s-hl"><div class="v">$511K</div><div class="l">Avg Sale Price</div></div>
+          <div class="s-hl"><div class="v">38.6M</div><div class="l">Basement Sqft</div></div>
+        </div>
+      </div>
+      <div id="sf-1" class="story-frame">
+        <div class="story-frame-tag">Scene 02 — Pricing</div>
+        <div class="story-frame-title">Price Distribution</div>
+        <div class="story-frame-body">The majority of homes fall in the <strong>$250K–$400K</strong> range with over 6,000 listings. The most populated bin is <strong>$300K</strong> with 2,188 homes. As prices rise, volume drops — only 1,042 homes exceeded $600K. Years-since-renovation stays low (0–1 years) across all price bands.</div>
+        <div class="story-highlights">
+          <div class="s-hl"><div class="v">$300K</div><div class="l">Most Common Price</div></div>
+          <div class="s-hl"><div class="v">2,188</div><div class="l">Homes at $300K</div></div>
+          <div class="s-hl"><div class="v">1,042</div><div class="l">Homes over $600K</div></div>
+        </div>
+      </div>
+      <div id="sf-2" class="story-frame">
+        <div class="story-frame-tag">Scene 03 — Renovation</div>
+        <div class="story-frame-title">Renovation Patterns</div>
+        <div class="story-frame-body">Renovation rates increase sharply with house age. Homes aged <strong>0–30 years</strong> show near-zero renovation rates, while homes aged <strong>60–100 years</strong> have renovation rates of 10–20%. The <strong>60–69 year</strong> age group shows the highest renovation activity — 159 homes renovated.</div>
+        <div class="story-highlights">
+          <div class="s-hl"><div class="v">60-69yr</div><div class="l">Peak Reno Age</div></div>
+          <div class="s-hl"><div class="v">159</div><div class="l">Renovated (60-69yr)</div></div>
+          <div class="s-hl"><div class="v">&lt;1%</div><div class="l">Reno Rate (0-30yr)</div></div>
+        </div>
+      </div>
+      <div id="sf-3" class="story-frame">
+        <div class="story-frame-tag">Scene 04 — Features</div>
+        <div class="story-frame-title">House Features by Age</div>
+        <div class="story-frame-body">The top 5 most common house ages (4, 12, 13, 14, 15 years) reveal structural patterns. <strong>4-year-old homes</strong> have the highest bedroom count, reflecting modern family-sized builds. Bedroom/bathroom counts stay around <strong>3–4 bedrooms</strong>. Floor counts stay between 1–2 across all age groups.</div>
+        <div class="story-highlights">
+          <div class="s-hl"><div class="v">4 yrs</div><div class="l">Most Common Age</div></div>
+          <div class="s-hl"><div class="v">558</div><div class="l">Houses Aged 4yr</div></div>
+          <div class="s-hl"><div class="v">3–4</div><div class="l">Typical Bedrooms</div></div>
+        </div>
+      </div>
+      <div id="sf-4" class="story-frame">
+        <div class="story-frame-tag">Scene 05 — Insights</div>
+        <div class="story-frame-title">Key Takeaways</div>
+        <div class="story-frame-body">
+          <strong>1. Price Volume:</strong> Most activity in $250K–$400K range; market thins above $500K.<br><br>
+          <strong>2. Renovation Value:</strong> Older homes (60+ years) renovated at higher rates — investment potential in aged properties.<br><br>
+          <strong>3. Modern Builds Dominate:</strong> 4-year-old homes are the single most common age — recent construction boom.<br><br>
+          <strong>4. Stable Features:</strong> Bedroom/bathroom counts consistent across age groups — buyer preferences drive construction.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Housing Trends</div>
+  <div class="footer-copy">© 2024 · Comprehensive House Price Analysis · Transformed Housing Data · 21,609 Records</div>
+</footer>
+
+<script>
+// ===== NAV =====
+function setActive(el) {
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ===== CHART DATA =====
+const salesData = [
+  {bin:'250K',count:2134,avg:0.6},{bin:'300K',count:2188,avg:0.5},
+  {bin:'350K',count:2069,avg:0.6},{bin:'400K',count:1998,avg:0.8},
+  {bin:'450K',count:1714,avg:0.9},{bin:'500K',count:1494,avg:0.7},
+  {bin:'550K',count:1345,avg:1.0},{bin:'600K',count:1042,avg:0.7},
+  {bin:'650K',count:911,avg:0.9},
+];
+const pieData = [
+  {label:'0-9',total:1470,reno:0},{label:'10-19',total:3552,reno:1},
+  {label:'20-29',total:2263,reno:7},{label:'30-39',total:2333,reno:28},
+  {label:'40-49',total:2222,reno:61},{label:'50-59',total:2714,reno:96},
+  {label:'60-69',total:2313,reno:159},{label:'70-79',total:1675,reno:150},
+  {label:'80-89',total:538,reno:78},{label:'90-99',total:1166,reno:130},
+  {label:'100-109',total:812,reno:117},{label:'110-119',total:551,reno:87},
+];
+const ageFeat = [
+  {age:4,beds:2076,baths:1531,floors:1186},{age:12,beds:1561,baths:1230,floors:929},
+  {age:13,beds:1532,baths:1182,floors:910},{age:14,beds:1520,baths:1154,floors:854},
+  {age:15,beds:1501,baths:1102,floors:829},
+];
+
+Chart.defaults.color = '#8895b3';
+Chart.defaults.borderColor = '#2a3246';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+function colorForVal(v, max=1.2) {
+  const t = Math.min(v/max,1);
+  return `rgb(${Math.round(232-t*156)},${Math.round(87+t*88)},${Math.round(42+t*98)})`;
+}
+const pieColors = ['#e8572a','#f0a05a','#f4d06f','#4caf8c','#5b9bd5','#8e6dc7','#e85d88','#d45a4a','#3aa87c','#3d7fc4','#c46e8c','#8e5d9a'];
+
+// Sales Chart (Overview)
+new Chart(document.getElementById('c-sales'), {
+  type:'bar',
+  data:{
+    labels: salesData.map(d=>d.bin),
+    datasets:[{label:'Count',data:salesData.map(d=>d.count),backgroundColor:salesData.map(d=>colorForVal(d.avg)),borderRadius:5,borderSkipped:false}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Sale Price (bin)',color:'#8895b3'}},y:{title:{display:true,text:'Count of Sales',color:'#8895b3'},beginAtZero:true}}}
+});
+
+// Sales Chart (Sales tab)
+new Chart(document.getElementById('c-sales2'), {
+  type:'bar',
+  data:{
+    labels: salesData.map(d=>d.bin),
+    datasets:[{label:'Count of Sales',data:salesData.map(d=>d.count),backgroundColor:salesData.map(d=>colorForVal(d.avg)),borderRadius:5,borderSkipped:false}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Sale Price (bin)',color:'#8895b3'}},y:{beginAtZero:true}}}
+});
+
+// Pie
+new Chart(document.getElementById('c-pie'), {
+  type:'pie',
+  data:{labels:pieData.map(d=>d.label+' yrs'),datasets:[{data:pieData.map(d=>d.total),backgroundColor:pieColors,borderColor:'#0e1118',borderWidth:2}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},padding:6}}}}
+});
+
+// Renovation Rate bar
+new Chart(document.getElementById('c-reno-rate'), {
+  type:'bar',
+  data:{
+    labels: pieData.map(d=>d.label),
+    datasets:[{label:'Renovated',data:pieData.map(d=>d.reno),backgroundColor:'#e8572a',borderRadius:4},{label:'Not Renovated',data:pieData.map(d=>d.total-d.reno),backgroundColor:'#2a3246',borderRadius:4}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}}}
+});
+
+// Age Feature
+new Chart(document.getElementById('c-age-feat'), {
+  type:'bar',
+  data:{
+    labels:ageFeat.map(d=>d.age+' yrs'),
+    datasets:[
+      {label:'No of Bedrooms',data:ageFeat.map(d=>d.beds),backgroundColor:'#e8572a',borderRadius:4},
+      {label:'No of Bathrooms',data:ageFeat.map(d=>d.baths),backgroundColor:'#f0a05a',borderRadius:4},
+      {label:'No of Floors',data:ageFeat.map(d=>d.floors),backgroundColor:'#4caf8c',borderRadius:4},
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{title:{display:true,text:'Age of House (in Years)',color:'#8895b3'}},y:{title:{display:true,text:'Value',color:'#8895b3'},beginAtZero:true}}}
+});
+
+// ===== DASHBOARD TABS =====
+function switchDash(name, btn) {
+  document.querySelectorAll('.dash-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.dash-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('dash-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ===== STORYBOARD =====
+function gotoStory(n, el) {
+  document.querySelectorAll('.story-frame').forEach((f,i)=>f.classList.toggle('active',i===n));
+  document.querySelectorAll('.story-item').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ===== SCROLL NAV HIGHLIGHT =====
+window.addEventListener('scroll', () => {
+  const sections = ['home','about','dashboard','story'];
+  let current = 'home';
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && window.scrollY >= el.offsetTop - 100) current = id;
+  });
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#'+current);
+  });
+});
+</script>
+</body>
+</html>
